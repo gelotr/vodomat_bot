@@ -1,5 +1,6 @@
 import os
 import asyncio
+import signal
 from aiohttp import web
 
 import bot as bot_module
@@ -14,27 +15,40 @@ async def handle(request: web.Request):
     return web.Response(text="ok")
 
 
-async def on_startup(app: web.Application):
+async def on_startup():
     webhook_url = os.getenv("WEBHOOK_URL", "").strip()
     if not webhook_url:
         raise RuntimeError("WEBHOOK_URL пустой")
     await bot_module.bot.set_webhook(webhook_url, drop_pending_updates=True)
 
 
-async def on_cleanup(app: web.Application):
+async def shutdown(runner: web.AppRunner):
     await bot_module.bot.delete_webhook()
     await bot_module.bot.session.close()
+    await runner.cleanup()
 
 
-def main():
+async def main():
+    await on_startup()
+
     app = web.Application()
     app.router.add_post(WEBHOOK_PATH, handle)
-    app.on_startup.append(on_startup)
-    app.on_cleanup.append(on_cleanup)
 
-    port = int(os.environ.get("PORT", "10000"))
-    web.run_app(app, host="0.0.0.0", port=port)
+    runner = web.AppRunner(app)
+    await runner.setup()
+
+    port = int(os.getenv("PORT", "10000"))
+    site = web.TCPSite(runner, host="0.0.0.0", port=port)
+    await site.start()
+
+    stop_event = asyncio.Event()
+    loop = asyncio.get_running_loop()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(sig, stop_event.set)
+
+    await stop_event.wait()
+    await shutdown(runner)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

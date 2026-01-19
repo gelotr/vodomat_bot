@@ -3,6 +3,7 @@ import re
 import asyncio
 import aiosqlite
 from dotenv import load_dotenv
+from aiogram.types import Update
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart

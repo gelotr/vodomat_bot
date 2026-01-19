@@ -154,4 +154,10 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    if os.getenv("WEBHOOK_URL"):
+        print("WEBHOOK_URL set: polling disabled (webhook mode)")
+    else:
+        asyncio.run(main())
+
+
+

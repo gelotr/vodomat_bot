@@ -22,6 +22,7 @@ async def on_startup(app: web.Application):
 
 async def on_cleanup(app: web.Application):
     await bot_module.bot.delete_webhook()
+    await bot_module.bot.session.close()
 
 
 def main():

@@ -1,4 +1,5 @@
 import os
+import asyncio
 from aiohttp import web
 
 import bot as bot_module
